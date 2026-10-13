@@ -11,10 +11,9 @@
  *       (đồng thời điền URL và Anon Key của Supabase vào CHAT_CFG bên dưới)
  */
 
-// Đang TẠM TẮT đăng nhập ID/Pass theo yêu cầu. Đổi thành true khi cần mở lại:
-window.AUTH_ENABLED = false;
+window.AUTH_ENABLED = true;
 
 window.CHAT_CFG = {
-  url: "", // Điền URL Supabase tại đây khi mở lại (VD: "https://your-project.supabase.co")
-  key: "", // Điền anon public key Supabase tại đây khi mở lại
+  url: "https://zwrfpnkeisrwsmnqsqvd.supabase.co",
+  key: "sb_publishable_vqDaf9gPy7_Llpj4q1F-WQ_ZKnT-Enn",
 };
