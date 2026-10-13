@@ -14,6 +14,6 @@
 window.AUTH_ENABLED = true;
 
 window.CHAT_CFG = {
-  url: "https://zwrfpnkeisrwsmnqsqvd.supabase.co",
+  url: "https://zwrfpnkeisrwsmngsqvd.supabase.co",
   key: "sb_publishable_vqDaf9gPy7_Llpj4q1F-WQ_ZKnT-Enn",
 };
