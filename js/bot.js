@@ -2,7 +2,7 @@
 /* ====================================================================
  * HỆ THỐNG HIỆP KHÁCH GIANG HỒ / BOT ẢO ĐA DẠNG (BOT_SYSTEM.JS)
  * - Tự do chạy khắp toàn bộ bản đồ để săn quái, farm bãi riêng biệt
- * - Không còn bám đuôi người chơi: mỗi bot có khu vực săn quái độc lập
+ * - Hiển thị 100% đầy đủ ngoại hình (JXLOOK HD / Sprite môn phái sắc nét)
  * - Đầy đủ 10 môn phái với ngoại hình và màu sắc đặc trưng
  * - Đầy đủ các tầng lớp cấp độ: Tân thủ, Trung cấp, Đại hiệp, Cao thủ, Tông sư
  * - Kỹ năng võ công riêng biệt của từng môn phái phát sáng sinh động
@@ -10,25 +10,25 @@
  * ==================================================================== */
 
 const ALL_FACTIONS = [
-  { key: "shaolin", n: "Thiếu Lâm", anim: "pl_shaolin", col: "#f3d35b", skills: [1, 10, 11] },
-  { key: "tianwang", n: "Thiên Vương", anim: "pl_tianwang", col: "#f3d35b", skills: [20, 29, 30] },
-  { key: "tangmen", n: "Đường Môn", anim: "pl_tangmen", col: "#6fd46a", skills: [63, 65, 68] },
-  { key: "wudu", n: "Ngũ Độc", anim: "pl_wudu", col: "#6fd46a", skills: [80, 82, 85] },
-  { key: "emei", n: "Nga My", anim: "pl_emei", col: "#5fb8ff", skills: [99, 102, 108] },
-  { key: "cuiyan", n: "Thúy Yên", anim: "pl_cuiyan", col: "#5fb8ff", skills: [113, 119, 122] },
-  { key: "gaibang", n: "Cái Bang", anim: "pl_gaibang", col: "#ff6a3a", skills: [135, 138, 145] },
-  { key: "tianren", n: "Thiên Nhẫn", anim: "pl_tianren", col: "#ff6a3a", skills: [153, 155, 158] },
-  { key: "wudang", n: "Võ Đang", anim: "pl_wudang", col: "#c8965a", skills: [164, 165, 215] },
-  { key: "kunlun", n: "Côn Lôn", anim: "pl_kunlun", col: "#c8965a", skills: [172, 176, 179] }
+  { key: "shaolin", n: "Thiếu Lâm", col: "#f3d35b", wp: 10, sex: 0 },    // Côn
+  { key: "tianwang", n: "Thiên Vương", col: "#f3d35b", wp: 16, sex: 0 },  // Chùy / Thương
+  { key: "tangmen", n: "Đường Môn", col: "#6fd46a", wp: 19, sex: 0 },    // Ám khí
+  { key: "wudu", n: "Ngũ Độc", col: "#6fd46a", wp: 4, sex: 0 },          // Đao
+  { key: "emei", n: "Nga My", col: "#5fb8ff", wp: 1, sex: 1 },           // Kiếm
+  { key: "cuiyan", n: "Thúy Yên", col: "#5fb8ff", wp: 4, sex: 1 },       // Đao
+  { key: "gaibang", n: "Cái Bang", col: "#ff6a3a", wp: 0, sex: 0 },      // Chưởng
+  { key: "tianren", n: "Thiên Nhẫn", col: "#ff6a3a", wp: 7, sex: 0 },     // Thương
+  { key: "wudang", n: "Võ Đang", col: "#c8965a", wp: 1, sex: 0 },         // Kiếm
+  { key: "kunlun", n: "Côn Lôn", col: "#c8965a", wp: 4, sex: 0 }          // Đao
 ];
 
 // Các tầng lớp hiệp khách giang hồ
 const BOT_TIERS = [
-  { name: "Tân Thủ", minLv: 15, maxLv: 39, title: "«Sơ Nhập Giang Hồ»", tCol: "#a0a0a0", aura: null, horseR: 1 },
-  { name: "Hiệp Khách", minLv: 40, maxLv: 69, title: "«Hành Hiệp Trượng Nghĩa»", tCol: "#6aa8ff", aura: "#6aa8ff", horseR: 2 },
-  { name: "Đại Hiệp", minLv: 70, maxLv: 99, title: "«Danh Chấn Tứ Hải»", tCol: "#ff9a3c", aura: "#ff9a3c", horseR: 3 },
-  { name: "Cao Thủ", minLv: 100, maxLv: 149, title: "«Tuyệt Thế Cao Thủ»", tCol: "#c77bff", aura: "#c77bff", horseR: 4 },
-  { name: "Tông Sư", minLv: 150, maxLv: 200, title: "«Độc Cô Cầu Bại»", tCol: "#ffd76a", aura: "#ffd76a", horseR: 5 }
+  { name: "Tân Thủ", minLv: 15, maxLv: 39, title: "«Sơ Nhập Giang Hồ»", tCol: "#a0a0a0", aura: null, horseR: -1, enh: 0 },
+  { name: "Hiệp Khách", minLv: 40, maxLv: 69, title: "«Hành Hiệp Trượng Nghĩa»", tCol: "#6aa8ff", aura: "#6aa8ff", horseR: 0, enh: 4 },
+  { name: "Đại Hiệp", minLv: 70, maxLv: 99, title: "«Danh Chấn Tứ Hải»", tCol: "#ff9a3c", aura: "#ff9a3c", horseR: 1, enh: 7 },
+  { name: "Cao Thủ", minLv: 100, maxLv: 149, title: "«Tuyệt Thế Cao Thủ»", tCol: "#c77bff", aura: "#c77bff", horseR: 6, enh: 10 },
+  { name: "Tông Sư", minLv: 150, maxLv: 200, title: "«Độc Cô Cầu Bại»", tCol: "#ffd76a", aura: "#ffd76a", horseR: 7, enh: 12 }
 ];
 
 const BOT_NAMES = [
@@ -67,17 +67,28 @@ let BOT_LIST = [];
 let botLastSpawn = 0;
 let botLastChat = Date.now() + 5000;
 
-function botMakeGear(lvl, facKey) {
-  const gear = {};
-  const horses = [
-    "Chiếu Dạ Ngọc Sư Tử", "Xích Thố", "Phi Vân", "Bôn Tiêu", 
-    "Ô Vân Đạp Tuyết", "Tuyệt Ảnh", "Đích Lô", "Hãn Huyết Long Câu"
-  ];
-  gear.horse = {
-    d: 10, k: 0, n: pick(horses), r: clamp(Math.floor(lvl / 30), 1, 5), lvl: Math.min(100, lvl),
-    base: [[28, 50, 80]], mag: [{ a: 110, p: [35, 0, 0] }, { a: 115, p: [40, 0, 0] }]
+// Tạo cấu hình ngoại hình JXLOOK chuẩn từng chi tiết cho Bot
+function botJxSetup(sx, weaponIdx, horseRow) {
+  if (typeof window.JXLOOK === "undefined" || !window.JXLOOK) return null;
+  const JXL = window.JXLOOK;
+  const n = sx ? "f" : "m";
+  const rows = {
+    helm: irnd(0, 3),
+    armor: irnd(0, 5),
+    weapon: weaponIdx || 0,
+    horse: horseRow != null ? horseRow : -1
   };
-  return gear;
+  const r = (JXL.wnames[n] || [])[rows.weapon] || "空手";
+  const t = (JXL.assoc && JXL.assoc[n] && JXL.assoc[n][r]) || (JXL.assoc && JXL.assoc[n] && JXL.assoc[n]["空手"]);
+  if (!t) return null;
+  const c = rows.horse >= 0 && t && t[1] ? 1 : 0;
+  return {
+    sx: n,
+    rows: rows,
+    asc: t[c] || t[0] || {},
+    ride: c,
+    key: JSON.stringify([n, rows, c])
+  };
 }
 
 // Sinh Bot tại một điểm bất kỳ trên toàn bộ map thế giới
@@ -86,14 +97,11 @@ function spawnOneBot() {
   
   // Chọn ngẫu nhiên môn phái trong 10 phái
   const fac = pick(ALL_FACTIONS);
-  
-  // Chọn ngẫu nhiên tầng lớp hiệp khách
   const tier = pick(BOT_TIERS);
   const botLvl = irnd(tier.minLv, tier.maxLv);
-  
   const botName = pick(BOT_NAMES.filter(n => n !== S.name && !BOT_LIST.some(b => b.name === n))) || ("Hiệp Khách " + irnd(100, 999));
   
-  // Vị trí sinh ngẫu nhiên khắp map, hoặc ở các bãi quái xa người chơi
+  // Vị trí sinh ngẫu nhiên khắp map
   let bx, by;
   const pts = (R.field && R.field.pts) ? R.field.pts : [];
   if (pts.length && Math.random() < 0.7) {
@@ -103,13 +111,17 @@ function spawnOneBot() {
     [bx, by] = inWorld(rnd(200, WORLD.w - 200), rnd(200, WORLD.h - 200));
   }
   
+  const botSex = fac.sex;
+  const horseRow = (tier.horseR >= 0 && botLvl >= 30) ? tier.horseR : -1;
+  const botJx = botJxSetup(botSex, fac.wp, horseRow);
+  
   const bot = {
     oth: true,
     name: botName,
     fac: fac.key,
     facName: fac.n,
     facCol: fac.col,
-    skills: fac.skills,
+    sex: botSex,
     lvl: botLvl,
     tierName: tier.name,
     title: tier.title,
@@ -123,16 +135,18 @@ function spawnOneBot() {
     face: 1,
     act: "st",
     actT: 0,
-    animKey: fac.anim,
     target: null,
     atkT: rnd(0.5, 1.2),
-    moveT: rnd(2, 6),
+    moveT: rnd(3, 7),
     destX: null,
     destY: null,
     life: 1,
     maxLife: 800 + botLvl * 120,
-    mounted: botLvl >= 30 && Math.random() < 0.7,
-    gear: botMakeGear(botLvl, fac.key)
+    mounted: horseRow >= 0,
+    jx: botJx,
+    gear: {
+      horse: horseRow >= 0 ? { d: 10, k: 0, n: "Chiến Mã", r: 4, lvl: 80, base: [[28, 50, 80]], mag: [] } : null
+    }
   };
   
   BOT_LIST.push(bot);
@@ -151,14 +165,13 @@ function othTick(dt) {
   for (const b of BOT_LIST) {
     b.actT = (b.actT || 0) + dt;
     
-    // Tìm mục tiêu quái gần Bot nhất (trong bán kính 300px quanh Bot)
+    // Tìm mục tiêu quái gần Bot nhất
     if (!b.target || b.target.dead || b.target.hp <= 0 || Math.hypot(b.target.x - b.x, b.target.y - b.y) > 300) {
       const candidates = (R.enemies || []).filter(e => !e.dead && e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) < 300);
       b.target = candidates.length ? candidates[0] : null;
     }
     
     if (b.target) {
-      // Đang săn quái tại bãi của Bot
       const dx = b.target.x - b.x;
       const dy = b.target.y - b.y;
       const dist = Math.hypot(dx, dy);
@@ -185,7 +198,6 @@ function othTick(dt) {
             const dmg = Math.round((180 + b.lvl * 28) * rnd(0.85, 1.15));
             b.target.hp -= dmg;
             
-            // Hiệu ứng số sát thương và tia võ công
             if (typeof addText === "function") {
               addText(b.target.x + rnd(-12, 12), b.target.y - b.target.r - 8, fmt(dmg), b.facCol, 11);
             }
@@ -196,19 +208,16 @@ function othTick(dt) {
         }
       }
     } else {
-      // Nếu bãi hết quái: Tự động chạy đi tìm bãi quái mới trên map (HOÀN TOÀN ĐỘC LẬP VỚI NGƯỜI CHƠI)
+      // Tự động chạy đi tìm bãi quái mới trên map
       b.moveT = (b.moveT || 0) - dt;
       if (b.moveT <= 0 || b.destX == null) {
         b.moveT = rnd(4, 9);
-        
-        // Tìm bãi quái bất kỳ trên map để chạy tới
         const pts = (R.field && R.field.pts) ? R.field.pts : [];
         if (pts.length) {
           const destPt = pick(pts);
           b.destX = destPt.x + rnd(-70, 70);
           b.destY = destPt.y + rnd(-70, 70);
         } else {
-          // Đi tuần tra tự do trên map
           b.destX = clamp(b.x + rnd(-250, 250), 200, WORLD.w - 200);
           b.destY = clamp(b.y + rnd(-250, 250), 200, WORLD.h - 200);
         }
@@ -229,7 +238,6 @@ function othTick(dt) {
       }
     }
     
-    // Đảm bảo không chạy ra khỏi viền map
     [b.x, b.y] = inWorld(b.x, b.y);
   }
   
@@ -253,7 +261,7 @@ function othEnts() {
   return BOT_LIST.map(b => ({ oth: b, y: b.y }));
 }
 
-// Vẽ Bot lên màn hình với ngoại hình môn phái và hiệu ứng hào quang
+// Vẽ Bot lên màn hình: Sử dụng JXLOOK HD, nếu chưa tải xong sẽ vẽ Sprite môn phái sắc nét
 function othDraw(ctx, b, dt) {
   if (!b) return;
   
@@ -263,7 +271,7 @@ function othDraw(ctx, b, dt) {
   ctx.ellipse(b.x, b.y, 15, 6, 0, 0, 7);
   ctx.fill();
   
-  // Hào quang danh nhân cho Bot cao cấp
+  // Hào quang võ công dưới chân cho các bậc Cao Thủ & Tông Sư
   if (b.auraCol) {
     ctx.save();
     ctx.globalAlpha = 0.35;
@@ -275,9 +283,29 @@ function othDraw(ctx, b, dt) {
     ctx.restore();
   }
   
-  // Vẽ hoạt ảnh nhân vật theo môn phái
-  if (typeof drawAnim === "function") {
-    drawAnim(b.animKey, b.act || "st", b.dir || 0, b.actT || 0, b.x, b.y, 1.35, 1);
+  // 1. Thử vẽ bằng hệ thống JXLOOK hoàn chỉnh (có giáp, vũ khí, ngựa)
+  let drawn = false;
+  if (typeof drawJxHero === "function" && b.jx) {
+    const scale = typeof HERO_SCALE !== "undefined" ? HERO_SCALE : 1.35;
+    const res = drawJxHero(b.act || "st", b.dir || 0, b.actT || 0, b.x, b.y, scale, 1, null, b.jx);
+    if (res) drawn = true;
+  }
+  
+  // 2. Nếu JXLOOK chưa sẵn sàng, vẽ bằng Sprite môn phái chính xác 100%
+  if (!drawn && typeof drawSprite === "function" && typeof img === "function") {
+    const plImg = img("img/pl/" + b.fac + ".png");
+    if (plImg && plImg.complete && plImg.naturalWidth) {
+      drawSprite(plImg, [60, 60, 30, 55], b.x, b.y, 1.1, b.face < 0, 1);
+      drawn = true;
+    }
+  }
+  
+  // 3. Fallback cuối cùng nếu ảnh chưa tải xong: hình cầu ngũ hành
+  if (!drawn) {
+    ctx.fillStyle = b.facCol || "#ffd76a";
+    ctx.beginPath();
+    ctx.arc(b.x, b.y - 20, 14, 0, 7);
+    ctx.fill();
   }
   
   // Hiển thị Danh hiệu, Môn phái, Tên và Cấp độ
