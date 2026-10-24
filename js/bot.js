@@ -114,9 +114,24 @@ function spawnOneBot() {
     [bx, by] = obsSnap(bx, by);
   }
   
+// Bảng võ công đặc trưng tuyệt đẹp cho 10 môn phái của Bot
+const BOT_FAC_SKILLS = {
+  shaolin:  [ { id: 318, n: "Đạt Ma Độ Giang", range: 90 }, { id: 319, n: "Hoành Tảo Thiên Quân", range: 90 }, { id: 20, n: "Sư Tử Hống", range: 130 } ],
+  tianwang: [ { id: 41, n: "Huyết Chiến Bát Phương", range: 75 }, { id: 323, n: "Truy Tinh Trục Nguyệt", range: 85 }, { id: 40, n: "Đoạn Hồn Thích", range: 160 } ],
+  tangmen:  [ { id: 302, n: "Bạo Vũ Lê Hoa", range: 240 }, { id: 342, n: "Cửu Cung Phi Tinh", range: 220 }, { id: 58, n: "Thiên La Địa Võng", range: 200 } ],
+  wudu:     [ { id: 353, n: "Âm Phong Thực Cốt", range: 200 }, { id: 355, n: "Huyền Âm Trảm", range: 160 }, { id: 68, n: "U Minh Khô Lâu", range: 220 } ],
+  emei:     [ { id: 380, n: "Phong Sương Toái Ảnh", range: 220 }, { id: 328, n: "Tam Nga Tề Tuyết", range: 200 }, { id: 91, n: "Phật Quang Phổ Chiếu", range: 180 } ],
+  cuiyan:   [ { id: 336, n: "Băng Tung Vô Ảnh", range: 220 }, { id: 337, n: "Băng Tâm Tiên Tử", range: 200 }, { id: 108, n: "Mục Dã Lưu Tinh", range: 180 } ],
+  gaibang:  [ { id: 357, n: "Phi Long Tại Thiên", range: 220 }, { id: 359, n: "Thiên Hạ Vô Cẩu", range: 180 }, { id: 128, n: "Kháng Long Hữu Hối", range: 190 } ],
+  tianren:  [ { id: 361, n: "Vân Long Kích", range: 90 }, { id: 362, n: "Thiên Ngoại Lưu Tinh", range: 220 }, { id: 148, n: "Ma Diệm Thất Sát", range: 150 } ],
+  wudang:   [ { id: 365, n: "Thiên Địa Vô Cực", range: 220 }, { id: 368, n: "Nhân Kiếm Hợp Nhất", range: 220 }, { id: 165, n: "Vô Ngã Vô Kiếm", range: 180 } ],
+  kunlun:   [ { id: 375, n: "Lôi Động Cửu Thiên", range: 220 }, { id: 372, n: "Ngạo Tuyết Tiêu Phong", range: 200 }, { id: 182, n: "Ngũ Lôi Chánh Pháp", range: 180 } ]
+};
+
   const botSex = fac.sex;
   const horseRow = (tier.horseR >= 0 && botLvl >= 30) ? tier.horseR : -1;
   const botJx = botJxSetup(botSex, fac.wp, horseRow);
+  const botSkills = BOT_FAC_SKILLS[fac.key] || [ { id: 10, n: "Võ Công Phái", range: 100 } ];
   
   const bot = {
     oth: true,
@@ -130,6 +145,8 @@ function spawnOneBot() {
     title: tier.title,
     tCol: tier.tCol,
     auraCol: tier.aura,
+    skills: botSkills,
+    curSkill: pick(botSkills),
     x: bx,
     y: by,
     px: bx,
@@ -171,12 +188,11 @@ function othTick(dt) {
     const oldY = b.y;
     
     // Tìm mục tiêu quái gần Bot nhất (ưu tiên quái không bị che khuất bởi tường/vật cản)
-    if (!b.target || b.target.dead || b.target.hp <= 0 || Math.hypot(b.target.x - b.x, b.target.y - b.y) > 350) {
+    if (!b.target || b.target.dead || b.target.hp <= 0 || Math.hypot(b.target.x - b.x, b.target.y - b.y) > 380) {
       const candidates = (R.enemies || []).filter(e => {
         if (e.dead || e.hp <= 0) return false;
         const d = Math.hypot(e.x - b.x, e.y - b.y);
-        if (d > 350) return false;
-        // Kiểm tra xem có nhìn thấy quái hay bị tường/cây chắn không
+        if (d > 380) return false;
         return typeof obsSee === "function" ? obsSee(b.x, b.y, e.x, e.y) : true;
       });
       b.target = candidates.length ? candidates[0] : null;
@@ -189,7 +205,8 @@ function othTick(dt) {
       b.face = dx >= 0 ? 1 : -1;
       b.dir = dirOf(dx, dy);
       
-      const atkRange = ["tangmen", "wudu", "wudang", "cuiyan"].includes(b.fac) ? 140 : 65;
+      const skill = b.curSkill || (b.skills && b.skills[0]) || { id: 0, range: 80 };
+      const atkRange = skill.range || 90;
       const canSee = typeof obsSee === "function" ? obsSee(b.x, b.y, b.target.x, b.target.y) : true;
       
       if (dist > atkRange || !canSee) {
@@ -209,15 +226,28 @@ function othTick(dt) {
         b.act = "at";
         b.atkT = (b.atkT || 0) - dt;
         if (b.atkT <= 0) {
-          b.atkT = rnd(0.6, 1.1);
+          b.atkT = rnd(0.7, 1.2);
           b.actT = 0;
           
           if (b.target && !b.target.dead) {
-            const dmg = Math.round((180 + b.lvl * 28) * rnd(0.85, 1.15));
+            const skObj = b.curSkill || pick(b.skills);
+            b.curSkill = pick(b.skills); // Đổi chiêu thức luân phiên cho đẹp mắt
+            
+            // Thi triển hiệu ứng võ công đẹp mắt chính xác theo từng môn phái
+            if (typeof skillFx === "function" && skObj && skObj.id) {
+              try {
+                skillFx(b, b.target, { id: skObj.id, n: skObj.n, L: Math.max(1, Math.floor(b.lvl / 5)), nMis: 3 });
+              } catch(e) {}
+            }
+            if (typeof skillSfx === "function" && skObj && skObj.id) {
+              try { skillSfx(skObj.id); } catch(e) {}
+            }
+            
+            const dmg = Math.round((260 + b.lvl * 35) * rnd(0.85, 1.15));
             b.target.hp -= dmg;
             
             if (typeof addText === "function") {
-              addText(b.target.x + rnd(-12, 12), b.target.y - b.target.r - 8, fmt(dmg), b.facCol, 11);
+              addText(b.target.x + rnd(-12, 12), b.target.y - b.target.r - 8, fmt(dmg), b.facCol, 12);
             }
             if (typeof burst === "function") {
               burst(b.target.x, b.target.y, b.facCol);
@@ -329,15 +359,24 @@ function othDraw(ctx, b, dt) {
   ctx.ellipse(b.x, b.y, 15, 6, 0, 0, 7);
   ctx.fill();
   
-  // Hào quang võ công dưới chân cho các bậc Cao Thủ & Tông Sư
+  // Hào quang võ công xoay tròn rực rỡ dưới chân cho các bậc Cao Thủ & Tông Sư
   if (b.auraCol) {
     ctx.save();
-    ctx.globalAlpha = 0.35;
+    const tClock = (Date.now() % 10000) / 1000;
+    const pulse = 1 + Math.sin(tClock * 4) * 0.12;
+    ctx.globalAlpha = 0.55;
     ctx.strokeStyle = b.auraCol;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.ellipse(b.x, b.y, 22, 9, 0, 0, 7);
+    ctx.ellipse(b.x, b.y, 25 * pulse, 10 * pulse, 0, 0, 7);
     ctx.stroke();
+
+    // Vòng tròn ánh sáng phụ lấp lánh
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = b.auraCol;
+    ctx.beginPath();
+    ctx.ellipse(b.x, b.y, 20 * pulse, 8 * pulse, 0, 0, 7);
+    ctx.fill();
     ctx.restore();
   }
   
@@ -374,7 +413,7 @@ function othDraw(ctx, b, dt) {
       labelY,
       `${b.name} · Lv${b.lvl}`,
       b.facCol || "#ffd76a",
-      11,
+      12,
       1,
       "#4fd04f",
       `${b.title} [${b.facName}]`,
