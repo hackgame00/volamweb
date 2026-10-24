@@ -186,7 +186,10 @@ body.u20 .mbox::after{display:none!important}
 .u2s{background:#0b0c0a55!important}
 /* dieu khien chien dau gom canh thanh ky nang */
 body.u20 #topCtl{top:auto!important;bottom:60px!important;left:calc(50% + 6px)!important;right:auto!important;transform:none!important}
-body.u20 #modeSw{top:auto!important;bottom:60px!important;right:calc(50% + 6px)!important;left:auto!important}
+body.u20 #modeSw{top:auto!important;bottom:60px!important;right:calc(50% + 6px)!important;left:auto!important;z-index:25!important;overflow:visible!important}
+body.u20 #mswMenu{left:auto;right:0;bottom:33px}
+body.u2s #modeSw{z-index:25!important;overflow:visible!important}
+body.u2s #mswMenu{left:0;right:auto;bottom:auto;top:33px}
 body.u20 #rideBtn{display:none!important}
 .u2tm{max-height:58vh;overflow:auto;padding-right:4px}
 /* thanh ban do duoi ban do nho */
