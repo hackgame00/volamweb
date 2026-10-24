@@ -345,3 +345,118 @@ window.getBotProfile = function(name) {
   }
   return null;
 };
+
+/* ====================================================================
+ * THỊ TRƯỜNG CHỢ & GIAO THƯƠNG BOT TỰ ĐỘNG (BOT MARKET SIMULATION)
+ * - Tự động mua các món đồ mà người chơi đăng bán trên Chợ (nhận bạc/KNB qua Thư)
+ * - Tự động bổ sung các trang bị, vũ khí, ngựa, bí kíp lên Chợ để người chơi mua sắm
+ * ==================================================================== */
+
+let botMktTimer = 0;
+const BOT_REPLIES = [
+  { trigger: /chợ|bán|mua/i, reply: "Vào Chợ xem thử đi bạn, mình vừa treo ít đồ lên đó đấy!" },
+  { trigger: /boss|trùm/i, reply: "Săn boss nhớ rủ mình với nha, đang thiếu mảnh Hoàng Kim." },
+  { trigger: /hello|chào|hi|alo/i, reply: "Chào huynh đệ! Chúc bạn bôn tẩu giang hồ may mắn." },
+  { trigger: /phái nào|môn phái/i, reply: "Phái nào cũng có nét hay riêng, quan trọng là phối đồ ngũ hành!" },
+  { trigger: /dã tẩu/i, reply: "Làm chuỗi Dã Tẩu lên mốc 500 nhận nhiều đồ xịn lắm đó bạn." },
+  { trigger: /tháp/i, reply: "Thông Thiên Tháp càng lên cao quái càng trâu, nên ép đồ trước khi leo." }
+];
+
+// Phản hồi khi người chơi chat thế giới
+if (typeof window.chatSend === "function") {
+  const origChatSend = window.chatSend;
+  window.chatSend = async function(text) {
+    const res = await origChatSend.apply(this, arguments);
+    if (text) {
+      for (const item of BOT_REPLIES) {
+        if (item.trigger.test(text)) {
+          setTimeout(() => {
+            const bot = BOT_LIST.length ? pick(BOT_LIST) : { name: pick(BOT_NAMES), facName: pick(ALL_FACTIONS).n, lvl: irnd(30, 120) };
+            if (typeof chatPush === "function") {
+              chatPush({
+                id: "bot_rep_" + Date.now(),
+                cid: "bot_cid_" + Math.random().toString(36).slice(2, 7),
+                name: bot.name,
+                fac: bot.facName,
+                lvl: bot.lvl,
+                msg: item.reply,
+                ts: Date.now()
+              });
+            }
+          }, rnd(1500, 3000));
+          break;
+        }
+      }
+    }
+    return res;
+  };
+}
+
+// Chu kỳ kiểm tra Chợ & Tự động mua/bán đồ
+setInterval(async function() {
+  if (typeof NET === "undefined" || !NET.sb || !NET.user || !S || !S.fac) return;
+  botMktTimer++;
+
+  // 1. Bot tự mua đồ mà người chơi đăng bán
+  try {
+    const res = await NET.sb.from("market").select("*").eq("seller", NET.user.id);
+    const myItems = res && res.data ? res.data : [];
+    if (myItems.length > 0 && Math.random() < 0.6) {
+      const itemToBuy = pick(myItems);
+      const buyerName = pick(BOT_NAMES);
+
+      try {
+        await NET.sb.rpc("market_buy", { lid: itemToBuy.id, buyer: buyerName });
+        if (typeof log === "function") {
+          log(`🏪 Hiệp khách <b>${esc(buyerName)}</b> đã mua <b>${esc(itemToBuy.iname)}</b> của bạn giá ${mktPriceTxt(itemToBuy)}!`);
+        }
+        if (typeof netMailCount === "function") netMailCount();
+      } catch (e) {
+        // Fallback gửi bạc/KNB về hòm thư người chơi
+        await NET.sb.from("mail").insert({
+          to_name: S.name,
+          from_name: buyerName,
+          from_owner: null,
+          kind: "gift",
+          item: null,
+          gold: itemToBuy.cur === "knb" ? 0 : itemToBuy.price,
+          knb: itemToBuy.cur === "knb" ? itemToBuy.price : 0,
+          note: `Tiền bán [${itemToBuy.iname}] trên Chợ`
+        });
+        await NET.sb.from("market").delete().eq("id", itemToBuy.id);
+        if (typeof log === "function") {
+          log(`🏪 Hiệp khách <b>${esc(buyerName)}</b> đã mua <b>${esc(itemToBuy.iname)}</b> của bạn giá ${mktPriceTxt(itemToBuy)}!`);
+        }
+        if (typeof netMailCount === "function") netMailCount();
+      }
+    }
+  } catch (err) {}
+
+  // 2. Bot tự đăng thêm đồ mới nếu chợ còn ít đồ
+  if (botMktTimer % 2 === 0) {
+    try {
+      const resCount = await NET.sb.from("market").select("id", { count: "exact", head: true });
+      const count = resCount && resCount.count ? resCount.count : 0;
+      if (count < 25) {
+        const seller = pick(BOT_NAMES);
+        const lvl = clamp((S.lvl || 20) + irnd(-10, 20), 10, 160);
+        const tier = clamp(Math.floor(lvl / 12) + 1, 1, 10);
+        const d = irnd(0, 9);
+        const it = makeItem(d, sexPart(d, 0), tier, irnd(2, 5), irnd(0, 4));
+        if (it) {
+          const isKnb = Math.random() < 0.25;
+          const price = isKnb ? irnd(5, 30) : Math.round(itemValue(it) * rnd(1.1, 1.8));
+          await NET.sb.from("market").insert({
+            seller: "00000000-0000-0000-0000-000000000000",
+            seller_name: seller,
+            item: it,
+            iname: it.n,
+            price: price,
+            cur: isKnb ? "knb" : "gold"
+          });
+        }
+      }
+    } catch (err) {}
+  }
+}, 20000);
+
