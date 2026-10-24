@@ -101,7 +101,7 @@ function spawnOneBot() {
   const botLvl = irnd(tier.minLv, tier.maxLv);
   const botName = pick(BOT_NAMES.filter(n => n !== S.name && !BOT_LIST.some(b => b.name === n))) || ("Hiệp Khách " + irnd(100, 999));
   
-  // Vị trí sinh ngẫu nhiên khắp map
+  // Vị trí sinh ngẫu nhiên khắp map - tránh sinh vào vùng cản
   let bx, by;
   const pts = (R.field && R.field.pts) ? R.field.pts : [];
   if (pts.length && Math.random() < 0.7) {
@@ -109,6 +109,9 @@ function spawnOneBot() {
     [bx, by] = inWorld(pt.x + rnd(-80, 80), pt.y + rnd(-80, 80));
   } else {
     [bx, by] = inWorld(rnd(200, WORLD.w - 200), rnd(200, WORLD.h - 200));
+  }
+  if (typeof obsSnap === "function") {
+    [bx, by] = obsSnap(bx, by);
   }
   
   const botSex = fac.sex;
@@ -164,10 +167,18 @@ function othTick(dt) {
   
   for (const b of BOT_LIST) {
     b.actT = (b.actT || 0) + dt;
+    const oldX = b.x;
+    const oldY = b.y;
     
-    // Tìm mục tiêu quái gần Bot nhất
-    if (!b.target || b.target.dead || b.target.hp <= 0 || Math.hypot(b.target.x - b.x, b.target.y - b.y) > 300) {
-      const candidates = (R.enemies || []).filter(e => !e.dead && e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) < 300);
+    // Tìm mục tiêu quái gần Bot nhất (ưu tiên quái không bị che khuất bởi tường/vật cản)
+    if (!b.target || b.target.dead || b.target.hp <= 0 || Math.hypot(b.target.x - b.x, b.target.y - b.y) > 350) {
+      const candidates = (R.enemies || []).filter(e => {
+        if (e.dead || e.hp <= 0) return false;
+        const d = Math.hypot(e.x - b.x, e.y - b.y);
+        if (d > 350) return false;
+        // Kiểm tra xem có nhìn thấy quái hay bị tường/cây chắn không
+        return typeof obsSee === "function" ? obsSee(b.x, b.y, e.x, e.y) : true;
+      });
       b.target = candidates.length ? candidates[0] : null;
     }
     
@@ -179,12 +190,19 @@ function othTick(dt) {
       b.dir = dirOf(dx, dy);
       
       const atkRange = ["tangmen", "wudu", "wudang", "cuiyan"].includes(b.fac) ? 140 : 65;
+      const canSee = typeof obsSee === "function" ? obsSee(b.x, b.y, b.target.x, b.target.y) : true;
       
-      if (dist > atkRange) {
-        // Chạy lại gần quái để đánh
-        const spd = (b.mounted ? 180 : 130) * dt;
-        b.x += (dx / dist) * spd;
-        b.y += (dy / dist) * spd;
+      if (dist > atkRange || !canSee) {
+        // Chạy lại gần quái để đánh - Sử dụng thuật toán tìm đường thông minh tránh vật cản
+        const spd = (b.mounted ? 170 : 125) * dt;
+        if (typeof obsChase === "function") {
+          obsChase(b, b.target.x, b.target.y, spd);
+        } else if (typeof obsSteer === "function") {
+          obsSteer(b, b.target.x, b.target.y, spd);
+        } else {
+          b.x += (dx / dist) * spd;
+          b.y += (dy / dist) * spd;
+        }
         b.act = "run";
       } else {
         // Tấn công quái
@@ -208,34 +226,74 @@ function othTick(dt) {
         }
       }
     } else {
-      // Tự động chạy đi tìm bãi quái mới trên map
+      // Tự động đi tuần tra / tìm bãi quái mới trên map
       b.moveT = (b.moveT || 0) - dt;
       if (b.moveT <= 0 || b.destX == null) {
-        b.moveT = rnd(4, 9);
+        b.moveT = rnd(5, 10);
         const pts = (R.field && R.field.pts) ? R.field.pts : [];
         if (pts.length) {
           const destPt = pick(pts);
-          b.destX = destPt.x + rnd(-70, 70);
-          b.destY = destPt.y + rnd(-70, 70);
+          let targetX = destPt.x + rnd(-80, 80);
+          let targetY = destPt.y + rnd(-80, 80);
+          if (typeof obsSnap === "function") {
+            [targetX, targetY] = obsSnap(targetX, targetY);
+          }
+          b.destX = targetX;
+          b.destY = targetY;
         } else {
-          b.destX = clamp(b.x + rnd(-250, 250), 200, WORLD.w - 200);
-          b.destY = clamp(b.y + rnd(-250, 250), 200, WORLD.h - 200);
+          let targetX = clamp(b.x + rnd(-300, 300), 200, WORLD.w - 200);
+          let targetY = clamp(b.y + rnd(-300, 300), 200, WORLD.h - 200);
+          if (typeof obsSnap === "function") {
+            [targetX, targetY] = obsSnap(targetX, targetY);
+          }
+          b.destX = targetX;
+          b.destY = targetY;
         }
       }
       
       const dx = b.destX - b.x;
       const dy = b.destY - b.y;
       const d = Math.hypot(dx, dy);
-      if (d > 15) {
+      if (d > 20) {
         b.act = "run";
-        b.face = dx >= 0 ? 1 : -1;
-        b.dir = dirOf(dx, dy);
         const spd = (b.mounted ? 120 : 85) * dt;
-        b.x += (dx / d) * spd;
-        b.y += (dy / d) * spd;
+        if (typeof obsChase === "function") {
+          obsChase(b, b.destX, b.destY, spd);
+        } else if (typeof obsSteer === "function") {
+          obsSteer(b, b.destX, b.destY, spd);
+        } else {
+          b.x += (dx / d) * spd;
+          b.y += (dy / d) * spd;
+        }
+        
+        // Hướng mặt theo hướng vừa di chuyển
+        const mx = b.x - oldX;
+        const my = b.y - oldY;
+        if (Math.hypot(mx, my) > 0.05) {
+          b.face = mx >= 0 ? 1 : -1;
+          b.dir = dirOf(mx, my);
+        }
       } else {
         b.act = "st";
       }
+    }
+    
+    // Phát hiện bot bị kẹt (di chuyển không thay đổi tọa độ) -> đổi mục tiêu ngay lập tức
+    const movedDist = Math.hypot(b.x - oldX, b.y - oldY);
+    if (b.act === "run" && movedDist < 0.1 * dt) {
+      b.stuckCount = (b.stuckCount || 0) + 1;
+      if (b.stuckCount > 25) { // kẹt hơn nửa giây
+        b.stuckCount = 0;
+        b.destX = null;
+        b.destY = null;
+        b.target = null;
+        b.moveT = 0;
+        if (typeof obsSnap === "function") {
+          [b.x, b.y] = obsSnap(b.x + rnd(-40, 40), b.y + rnd(-40, 40));
+        }
+      }
+    } else {
+      b.stuckCount = Math.max(0, (b.stuckCount || 0) - 1);
     }
     
     [b.x, b.y] = inWorld(b.x, b.y);
