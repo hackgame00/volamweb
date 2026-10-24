@@ -176,7 +176,11 @@ const BOT_FAC_SKILLS = {
 function othTick(dt) {
   if (!S || !S.fac) return;
   
-  // Duy trì từ 6 - 8 bot trên toàn map
+  // Leo Tháp và Phó Bản chỉ dành riêng cho nhân vật chính thử thách, không có bot sim
+  if ((typeof R !== 'undefined' && (R.tower || R.dg)) || (S && (S.mode === 'tower' || S.mode === 'dg'))) {
+    if (BOT_LIST.length > 0) BOT_LIST.length = 0;
+    return;
+  }
   if (Date.now() - botLastSpawn > 6000 && BOT_LIST.length < 8) {
     botLastSpawn = Date.now();
     spawnOneBot();
@@ -346,6 +350,9 @@ function othTick(dt) {
 }
 
 function othEnts() {
+  if ((typeof R !== 'undefined' && (R.tower || R.dg)) || (S && (S.mode === 'tower' || S.mode === 'dg'))) {
+    return [];
+  }
   return BOT_LIST.map(b => ({ oth: b, y: b.y }));
 }
 
